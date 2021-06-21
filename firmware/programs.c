@@ -84,7 +84,7 @@ void programs_check(const datetime_t* now)
 		}
 		else if (calendar.repeat_bits == 0b10)
 		{
-			if (calendar.offset != (year_day % calendar.days))
+			if (calendar.offset != (year_day % (calendar.days + 1)))
 				// program not enabled for current n-th day
 				continue;
 		}
@@ -128,7 +128,7 @@ void programs_reset_calendar(const datetime_t* now)
 		if (calendar.repeat_bits == 0b10)
 		{
 			// reset calendar offset to this n-day
-			calendar.offset = year_day % calendar.days;
+			calendar.offset = year_day % (calendar.days + 1);
 		}
 	}
 

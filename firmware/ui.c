@@ -418,7 +418,7 @@ void ui_calendar(void)
 					if (now.hours > start_time.hour || (now.hours == start_time.hour && now.minutes > start_time.minute))
 						today_passed = true;
 
-					calendar->offset = (rtcc_year_day(&now) + today_passed) % calendar->days;
+					calendar->offset = (rtcc_year_day(&now) + today_passed) % (calendar->days + 1);
 				}
 				break;
 			case 9:
