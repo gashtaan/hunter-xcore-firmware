@@ -17,3 +17,4 @@
 #pragma once
 
 bool packet_send(const uint8_t* data, size_t dataSize);
+bool packet_receive(uint8_t* data, size_t dataSize);

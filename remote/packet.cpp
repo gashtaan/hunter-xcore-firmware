@@ -66,17 +66,37 @@ void send_byte(uint8_t data)
 		io_emitBit(data & (1 << n));
 }
 
+uint8_t receive_byte()
+{
+	uint8_t data = 0;
+	for (size_t n = 0; n < 8; ++n)
+		if (io_receiveBit())
+			data |= (1 << n);
+
+	return data;
+}
+
+bool wait_data(bool state, unsigned long timeout)
+{
+	bool timed_out = true;
+	unsigned long wait_start = micros();
+	while ((timed_out = (io_data() != state)) && (micros() - wait_start) < timeout);
+	return !timed_out;
+}
+
 bool packet_send(const uint8_t* data, size_t dataSize)
 {
 	io_mode(INPUT);
 
+	// PGD must be LOW before transmission, wait no more than 1ms
+	if (!wait_data(LOW, 1000))
+		return false;
+
 	// set PGC to HIGH to signalize that data will be sent
 	io_clock(HIGH);
 
-	// remote unit will signalize with HIGH on PGD when it is ready to accept the data, wait no more than 200ms
-	uint32_t wait_start = micros();
-	bool timed_out = true;
-	while ((timed_out = !io_data()) && micros() - wait_start < 200000);
+	// remote unit will signalize with HIGH on PGD when it is ready to accept the data, wait no more than 500ms
+	bool timed_out = !wait_data(HIGH, 500000);
 
 	// set PGC back to LOW before actual data transfer
 	io_clock(LOW);
@@ -102,6 +122,46 @@ bool packet_send(const uint8_t* data, size_t dataSize)
 
 	// reset data back to LOW in case when last transmitted bit was 1
 	io_data(LOW);
+
+	return true;
+}
+
+bool packet_receive(uint8_t* data, size_t dataSize)
+{
+	io_mode(INPUT);
+
+	// PGD must be HIGH before transmission, wait no more than 1ms
+	if (!wait_data(HIGH, 1000))
+		return false;
+
+	// set PGC to HIGH to signalize that data can be received
+	io_clock(HIGH);
+
+	// remote unit will signalize with LOW on PGD when it is ready to send the data, wait no more than 50ms
+	bool timed_out = !wait_data(LOW, 50000);
+
+	// set PGC back to LOW before actual data transfer
+	io_clock(LOW);
+
+	if (timed_out)
+		return false;
+
+	// receive size of the data
+	uint8_t data_size = receive_byte();
+	if (data_size != dataSize)
+		return false;
+
+	// receive the data
+	uint8_t crc = 0;
+	for (size_t n = 0; n < data_size; ++n)
+	{
+		data[n] = receive_byte();
+		crc = crc_update(crc, data[n]);
+	}
+
+	// receive and check data CRC
+	if (receive_byte() != crc)
+		return false;
 
 	return true;
 }

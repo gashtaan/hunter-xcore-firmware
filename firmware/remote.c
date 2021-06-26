@@ -128,6 +128,78 @@ static uint8_t receive_packet(void)
 	return 0;
 }
 
+static bool send_byte(uint8_t data)
+{
+	uint8_t mask = 1;
+	for (uint8_t bits = 0; bits < 8; ++bits, mask <<= 1)
+	{
+		PORTBbits.PGD = (data & mask) ? 1 : 0;
+
+		// wait for clock pulse flips to HIGH, no longer than 200us
+		if (!wait_clock(0, 100, true))
+			return false;
+
+		// wait for clock pulse flips to LOW, no longer than 200us
+		if (!wait_clock(0, 100, false))
+			return false;
+	}
+
+	return true;
+}
+
+static bool send_start()
+{
+	// signal the remote that some data are going to be sent
+	TRISBbits.TRISB7 = 0;
+	PORTBbits.PGD = 1;
+}
+
+static void send_finish()
+{
+	// switch PGD back to input
+	PORTBbits.PGD = 0;
+	TRISBbits.TRISB7 = 1;
+}
+
+static bool send_packet(const uint8_t* data, size_t length)
+{
+	if (length > UINT8_MAX)
+		return false;
+
+	// compute packet CRC
+	uint8_t crc = 0;
+	for (uint8_t n = 0; n < length; ++n)
+		crc = crc_update(crc, data[n]);
+
+	// PGD should be already set to HIGH to signal remote that some data are going to be sent
+
+	// remote accepts it by setting PGC to HIGH, wait no longer than 5ms
+	bool timed_out = !wait_clock(7, 20, true);
+
+	PORTBbits.PGD = 0;
+
+	if (timed_out)
+		// wait for accept signal timed out
+		return false;
+
+	// wait for PGC pulse to going LOW before sending the data, no longer than 5ms
+	if (!wait_clock(7, 20, false))
+		return false;
+
+	// write data to PGD, single bit a PGC pulse
+	if (!send_byte((uint8_t)length))
+		return false;
+
+	for (uint8_t n = 0; n < length; ++n)
+		if (!send_byte(data[n]))
+			return false;
+
+	if (!send_byte(crc))
+		return false;
+
+	return true;
+}
+
 void remote_init(void)
 {
 	// PGC/RB6 clock input
@@ -214,6 +286,46 @@ void remote_handle(void)
 			// close all stations and wait a second for external reset to ensure it is safe (i.e. no EEPROM write is performed)
 			stations_close_all();
 			__delay_ms(1000);
+		}
+
+		case 0xB1:
+		{
+			// get unit info
+
+			// signal remote that it should wait for data, preparing the data packet may take some time
+			send_start();
+
+			// prepare the data packet
+			struct
+			{
+				struct
+				{
+					uint8_t day;
+					uint8_t month;
+					uint8_t year;
+					uint8_t hours;
+					uint8_t minutes;
+				} datetime;
+				uint8_t seasonal_adjustment;
+				uint16_t stations[NUMBER_OF_STATIONS];
+			}
+			packet;
+
+			packet.datetime.day = bcd_to_number(now.day);
+			packet.datetime.month = bcd_to_number(now.month);
+			packet.datetime.year = bcd_to_number(now.year);
+			packet.datetime.hours = bcd_to_number(now.hours);
+			packet.datetime.minutes = bcd_to_number(now.minutes);
+
+			packet.seasonal_adjustment = programs_seasonal_adjustment;
+
+			extern station_state_t stations_states[NUMBER_OF_STATIONS];
+			for (uint8_t n = 0; n < NUMBER_OF_STATIONS; ++n)
+				packet.stations[n] = stations_states[n].run_time;
+
+			// send the data packet
+			send_packet((const uint8_t*)&packet, sizeof(packet));
+			send_finish();
 		}
 	}
 }

@@ -112,14 +112,14 @@ void web_mainPage()
 
 			Start stations:<br>
 			<form method="get" action="/startStations">
-				1: <input type="text" name="station_1" size="3">
-				2: <input type="text" name="station_2" size="3">
-				3: <input type="text" name="station_3" size="3">
-				4: <input type="text" name="station_4" size="3"><br>
-				5: <input type="text" name="station_5" size="3">
-				6: <input type="text" name="station_6" size="3">
-				7: <input type="text" name="station_7" size="3">
-				8: <input type="text" name="station_8" size="3"><br>
+				1: <input type="text" name="station_1" size="3"> __UNIT_STATION_1__<br>
+				2: <input type="text" name="station_2" size="3"> __UNIT_STATION_2__<br>
+				3: <input type="text" name="station_3" size="3"> __UNIT_STATION_3__<br>
+				4: <input type="text" name="station_4" size="3"> __UNIT_STATION_4__<br>
+				5: <input type="text" name="station_5" size="3"> __UNIT_STATION_5__<br>
+				6: <input type="text" name="station_6" size="3"> __UNIT_STATION_6__<br>
+				7: <input type="text" name="station_7" size="3"> __UNIT_STATION_7__<br>
+				8: <input type="text" name="station_8" size="3"> __UNIT_STATION_8__<br>
 				<input type="submit" value="Start">
 			</form>
 
@@ -129,11 +129,13 @@ void web_mainPage()
 			<hr>
 			Seasonal adjustment:<br>
 			<form method="get" action="/seasonalAdjustment">
-				<input type="text" name="adjustment" size="3">
+				<input type="text" name="adjustment" size="3" value="__UNIT_SA__">
 				<input type="submit" value="Change">
 			</form>
 			<hr>
 			<form method="get" action="/updateTime">
+				Unit time:<br>
+				__UNIT_TIME__<br>
 				<input type="submit" value="Update Time">
 			</form>
 			<hr>
@@ -145,6 +147,53 @@ void web_mainPage()
 		</body>
 		</html>
 	)HTML";
+
+	struct
+	{
+		struct
+		{
+			uint8_t day;
+			uint8_t month;
+			uint8_t year;
+			uint8_t hours;
+			uint8_t minutes;
+		}
+		datetime;
+
+		uint8_t seasonal_adjustment;
+		uint16_t stations[8];
+	}
+	unit_info = {};
+
+	uint8_t packet[] = { 0xB1 };
+	if (packet_send(packet, sizeof(packet)) && packet_receive((uint8_t*)&unit_info, sizeof(unit_info)))
+	{
+		auto format_date = [](const auto& dt)
+		{
+			char str[20];
+			sprintf(str, "%u.%u.20%u %02u:%02u", dt.day, dt.month, dt.year, dt.hours, dt.minutes);
+			return String(str);
+		};
+		auto format_time = [](uint16_t seconds)
+		{
+			if (seconds == 0)
+				return String();
+
+			char str[10];
+			sprintf(str, "%02u:%02u:%02u", seconds / 3600, seconds % 3600 / 60, seconds % 60);
+			return String(str);
+		};
+		html.replace("__UNIT_SA__", String(unit_info.seasonal_adjustment));
+		html.replace("__UNIT_TIME__", format_date(unit_info.datetime));
+		html.replace("__UNIT_STATION_1__", format_time(unit_info.stations[0]));
+		html.replace("__UNIT_STATION_2__", format_time(unit_info.stations[1]));
+		html.replace("__UNIT_STATION_3__", format_time(unit_info.stations[2]));
+		html.replace("__UNIT_STATION_4__", format_time(unit_info.stations[3]));
+		html.replace("__UNIT_STATION_5__", format_time(unit_info.stations[4]));
+		html.replace("__UNIT_STATION_6__", format_time(unit_info.stations[5]));
+		html.replace("__UNIT_STATION_7__", format_time(unit_info.stations[6]));
+		html.replace("__UNIT_STATION_8__", format_time(unit_info.stations[7]));
+	}
 
 	html.replace("__RSSI__", String(WiFi.RSSI(), DEC));
 
