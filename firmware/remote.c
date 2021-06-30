@@ -147,7 +147,7 @@ static bool send_byte(uint8_t data)
 	return true;
 }
 
-static bool send_start()
+static void send_start()
 {
 	// signal the remote that some data are going to be sent
 	TRISBbits.TRISB7 = 0;
