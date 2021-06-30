@@ -121,15 +121,11 @@ void programs_reset_calendar(const datetime_t* now)
 {
 	uint16_t year_day = rtcc_year_day(now);
 
-	const program_t* program = &programs[0];
-	for (uint8_t n = 0; n < NUMBER_OF_PROGRAMS; ++n, ++program)
+	for (uint8_t n = 0; n < NUMBER_OF_PROGRAMS; ++n)
 	{
-		program_calendar_t calendar = program->calendar;
-		if (calendar.repeat_bits == 0b10)
-		{
-			// reset calendar offset to this n-day
-			calendar.offset = year_day % (calendar.days + 1);
-		}
+		// reset calendar offset to this n-day
+		if (programs[n].calendar.repeat_bits == 0b10)
+			programs[n].calendar.offset = year_day % (programs[n].calendar.days + 1);
 	}
 
 	programs_save();
