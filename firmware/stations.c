@@ -98,7 +98,7 @@ bool stations_queue_progress(uint16_t* run_time)
 void stations_queue_update(uint8_t elapsed_seconds)
 {
 	bool any_valve_in_rush = false;
-	uint8_t valves_opened = 0;
+	uint8_t valves_opened = stations_opened();
 
 	station_state_t* station_state = &stations_states[0];
 	for (uint8_t m = 0; m < NUMBER_OF_STATIONS; ++m, ++station_state)
@@ -111,12 +111,12 @@ void stations_queue_update(uint8_t elapsed_seconds)
 				station_state->run_time = 0;
 				station_state->open = false;
 				stations_close_single(m);
+
+				--valves_opened;
 				continue;
 			}
 
 			station_state->run_time -= elapsed_seconds;
-
-			++valves_opened;
 		}
 		else
 		{
@@ -151,6 +151,18 @@ uint8_t stations_queue_mask(void)
 			mask |= (1 << m);
 
 	return mask;
+}
+
+uint8_t stations_opened(void)
+{
+	uint8_t valves_opened = 0;
+
+	station_state_t* station_state = &stations_states[0];
+	for (uint8_t m = 0; m < NUMBER_OF_STATIONS; ++m, ++station_state)
+		if (station_state->open)
+			++valves_opened;
+
+	return valves_opened;
 }
 
 void stations_open_single(uint8_t number)

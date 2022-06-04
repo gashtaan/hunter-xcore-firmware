@@ -47,6 +47,7 @@ bool stations_queue_progress(uint16_t* run_time);
 void stations_queue_update(uint8_t elapsed_seconds);
 uint8_t stations_queue_mask(void);
 
+uint8_t stations_opened(void);
 void stations_open_single(uint8_t number);
 void stations_close_single(uint8_t number);
 void stations_close_all(void);
