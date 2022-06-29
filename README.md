@@ -8,3 +8,10 @@ Before the build, it's critical to configure correct unit revision by setting 2 
 
 ## Install
 After the build, firmware can be uploaded into MCU via ICSP - all signals and power rail is accessible on PCB either on edge connector or pads that are accessible even from outside (they're located under the front sticker with X-CORE logo on it). Use the Pickit, bitbang it or if you have built the remote access module, you can upload firmware directly via remote interface.
+
+## Remote access
+The remote access module with ESP8266 can't be powered from the unit directly, because logic voltage regulation in X-Core unit is horribly inefficient. After the rectification from AC it's regulated down to 24V using zener diodes, then to **negative** -3.3 or -5V (depends on unit's revision) using linear voltage regulation wasting watts of energy in heat, just to power MCU that consumes mostly around 1mA. Powering ESP8266 which can consume 400mA at peak is simply impossible.
+
+Because of that I choose the option to power the remote module from AC input, regulate to 3.3V with efficient switching regulator and connect to the unit via optocouplers. To communicate with MCU I use existing ICSP headers, this way I can do direct OTA updates of MCU firmware.
+
+Firmware of remote module serves simple web-page that allows the user to start selected program, stations and adjust seasonal settings. It also allows update the current time of unit's RTC clock, which is also performed automatically at boot.
