@@ -41,7 +41,8 @@ void web_seasonalAdjustment();
 void web_updateTime();
 void web_uploadFirmware();
 
-void updateUnitTime();
+bool timeUpdated = false;
+bool updateUnitTime();
 
 void setup(void)
 {
@@ -63,8 +64,6 @@ void setup(void)
 	while (WiFi.status() != WL_CONNECTED)
 		delay(1000);
 
-	updateUnitTime();
-
 	ArduinoOTA.begin();
 
 	web_server.on("/", web_mainPage);
@@ -79,12 +78,15 @@ void setup(void)
 
 void loop(void)
 {
-	// send dummy BB packet every 5 seconds just to flash LED a bit
 	static unsigned long ms = 0;
 	if ((millis() - ms) > 5000)
 	{
 		ms = millis();
 
+		if (!timeUpdated)
+			timeUpdated = updateUnitTime();
+
+		// send dummy BB packet just to flash LED a bit
 		uint8_t packet[] = { 0xBB };
 		packet_send(packet, sizeof(packet));
 	}
@@ -328,8 +330,10 @@ void web_uploadFirmware()
 	}
 }
 
-void updateUnitTime()
+bool updateUnitTime()
 {
+	bool success = false;
+
 	WiFiUDP ntp_udp;
 	NTPClient ntp_client(ntp_udp, "europe.pool.ntp.org", 7200);
 
@@ -348,8 +352,10 @@ void updateUnitTime()
 			uint8_t(ntp_client.getHours()),
 			uint8_t(ntp_client.getMinutes())
 		};
-		packet_send(packet, sizeof(packet));
+		success = packet_send(packet, sizeof(packet));
 	}
 
 	ntp_client.end();
+
+	return success;
 }
