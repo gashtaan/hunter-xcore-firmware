@@ -90,9 +90,16 @@ void web_mainPage()
 {
 	String html = R"HTML(
 		<html>
+		<style>
+			* { font-family: sans-serif }
+			H1 { background-color: #569D01; color:white; padding:5px }
+			INPUT[type=submit] { background-color: #569D01; color:white; border:0; padding:10px; margin-top:5px }
+			#footer, #footer A { color:#808080; font-size:12px }
+		</style>
 		<title>Hunter X-Core Remote</title>
-		<meta name="viewport" content="width=device-width">
+		<meta name="viewport" content="width=device-width, initial-scale=1"/>
 		<body>
+			<h1>Hunter X-Core Remote</h1>
 			RSSI: __RSSI__ dBm<br>
 			<hr>
 			Start program:<br>
@@ -106,7 +113,7 @@ void web_mainPage()
 					<option value="5">6</option>
 					<option value="6">7</option>
 					<option value="7">8</option>
-				</select>
+				</select><br>
 				<input type="submit" value="Start">
 			</form>
 
@@ -129,7 +136,7 @@ void web_mainPage()
 			<hr>
 			Seasonal adjustment:<br>
 			<form method="get" action="/seasonalAdjustment">
-				<input type="text" name="adjustment" size="3" value="__UNIT_SA__">
+				<input type="text" name="adjustment" size="3" value="__UNIT_SA__"><br>
 				<input type="submit" value="Change">
 			</form>
 			<hr>
@@ -144,6 +151,10 @@ void web_mainPage()
 				<input type="file" name="data"><br>
 				<input type="submit" value="Upload">
 			</form>
+			<div id="footer">
+				Remote for alternative firmware for Hunter X-Core controller<br/>
+				<a href="https://github.com/gashtaan/hunter-xcore-firmware">https://github.com/gashtaan/hunter-xcore-firmware</a>
+			</div>
 		</body>
 		</html>
 	)HTML";
