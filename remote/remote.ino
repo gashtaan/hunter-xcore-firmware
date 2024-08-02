@@ -33,6 +33,14 @@ IPAddress dns(192, 168, 1, 1);
 
 ESP8266WebServer web_server(80);
 
+void web_mainPage();
+void web_startProgram();
+void web_startStations();
+void web_stopStations();
+void web_seasonalAdjustment();
+void web_updateTime();
+void web_uploadFirmware();
+
 void updateUnitTime();
 
 void setup(void)
